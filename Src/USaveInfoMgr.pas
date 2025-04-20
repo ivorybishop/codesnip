@@ -24,9 +24,9 @@ uses
 
 
 type
-  ///  <summary>Class that saves information about a snippet to file in rich
-  ///  text format. The snippet is obtained from a view. Only snippet views are
-  ///  supported.</summary>
+  ///  <summary>Class that saves information about a snippet to file a user
+  ///  specified format. The snippet is obtained from a view. Only snippet views
+  ///  are supported.</summary>
   TSaveInfoMgr = class(TNoPublicConstructObject)
   strict private
     var
@@ -38,6 +38,10 @@ type
     ///  information about the snippet represented by the given view.</summary>
     class function GenerateRichText(View: IView; const AUseHiliting: Boolean):
       TEncodedData; static;
+
+    ///  <summary>Returns encoded data containing a plain text representation of
+    ///  information about the snippet represented by the given view.</summary>
+    function GeneratePlainText: TEncodedData;
 
     ///  <summary>Returns type of file selected in the associated save dialogue
     ///  box.</summary>
@@ -120,7 +124,8 @@ uses
   UPreferences,
   URTFSnippetDoc,
   URTFUtils,
-  USourceGen;
+  USourceGen,
+  UTextSnippetDoc;
 
 { TSaveInfoMgr }
 
@@ -195,6 +200,23 @@ begin
     TFileHiliter.IsHilitingSupported(FileType);
   case FileType of
     sfRTF: Result := GenerateRichText(fView, UseHiliting);
+    sfText: Result := GeneratePlainText;
+  end;
+end;
+
+function TSaveInfoMgr.GeneratePlainText: TEncodedData;
+var
+  Doc: TTextSnippetDoc;        // object that generates RTF document
+  HiliteAttrs: IHiliteAttrs;  // syntax highlighter formatting attributes
+begin
+  Assert(Supports(fView, ISnippetView),
+    ClassName + '.GeneratePlainText: View is not a snippet view');
+  HiliteAttrs := THiliteAttrsFactory.CreateNulAttrs;
+  Doc := TTextSnippetDoc.Create;
+  try
+    Result := Doc.Generate((fView as ISnippetView).Snippet);
+  finally
+    Doc.Free;
   end;
 end;
 
@@ -235,20 +257,35 @@ resourcestring
   sDlgCaption = 'Save Snippet Information';
   // descriptions of supported encodings
   sASCIIEncoding = 'ASCII';
+  sANSIDefaultEncoding = 'ANSI (Default)';
+  sUTF8Encoding = 'UTF-8';
+  sUTF16LEEncoding = 'Unicode (Little Endian)';
+  sUTF16BEEncoding = 'Unicode (Big Endian)';
   // descriptions of supported file filter strings
   sRTFDesc = 'Rich text file';
+  sTextDesc = 'Plain text file';
 begin
   inherited InternalCreate;
   fView := AView;
   fSourceFileInfo := TSourceFileInfo.Create;
-  // only RTF file type supported at present
+  // RTF and plain text files supported at present
   fSourceFileInfo.FileTypeInfo[sfRTF] := TSourceFileTypeInfo.Create(
     '.rtf',
     sRTFDesc,
     [
       TSourceFileEncoding.Create(etASCII, sASCIIEncoding)
     ]
- );
+  );
+  fSourceFileInfo.FileTypeInfo[sfText] := TSourceFileTypeInfo.Create(
+    '.txt',
+    sTextDesc,
+    [
+      TSourceFileEncoding.Create(etUTF8, sUTF8Encoding),
+      TSourceFileEncoding.Create(etUTF16LE, sUTF16LEEncoding),
+      TSourceFileEncoding.Create(etUTF16BE, sUTF16BEEncoding),
+      TSourceFileEncoding.Create(etSysDefault, sANSIDefaultEncoding)
+    ]
+  );
   fSourceFileInfo.DefaultFileName := sDefFileName;
 
   fSaveDlg := TSaveSourceDlg.Create(nil);
@@ -266,13 +303,36 @@ end;
 procedure TSaveInfoMgr.PreviewHandler(Sender: TObject);
 resourcestring
   sDocTitle = '"%0:s" snippet';
+var
+  // Type of snippet information document to preview: this is not always the
+  // same as the selected file type, because preview dialogue box doesn't
+  // support some types & we have to use an alternate.
+  PreviewFileType: TSourceFileType;
+  // Type of preview document supported by preview dialogue box
+  PreviewDocType: TPreviewDocType;
 begin
+  case SelectedFileType of
+    sfRTF:
+    begin
+      PreviewDocType := dtRTF;
+      PreviewFileType := sfRTF;
+    end;
+    sfText:
+    begin
+      PreviewDocType := dtPlainText;
+      PreviewFileType := sfText;
+    end;
+    else
+      raise Exception.Create(
+        ClassName + '.PreviewHandler: unsupported file type'
+      );
+  end;
   // Display preview dialog box. We use save dialog as owner to ensure preview
   // dialog box is aligned over save dialog box
   TPreviewDlg.Execute(
     fSaveDlg,
-    GenerateOutput(sfRTF),
-    dtRTF,
+    GenerateOutput(PreviewFileType),
+    PreviewDocType,
     Format(sDocTitle, [fView.Description])
   );
 end;
