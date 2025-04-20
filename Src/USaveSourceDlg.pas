@@ -93,6 +93,9 @@ type
       fSelectedFilterIdx: Integer;
       ///  <summary>Stores type of selected encoding.</summary>
       fSelectedEncoding: TEncodingType;
+      ///  <summary>Value of <c>EnableCommentStyles</c> property.</summary>
+      fEnableCommentStyles: Boolean;
+
     ///  <summary>Handles click on Help button.</summary>
     ///  <remarks>Calls help with required keyword.</remarks>
     procedure HelpClickHandler(Sender: TObject);
@@ -201,6 +204,10 @@ type
     ///  encodings supported for the file type.</summary>
     property OnEncodingQuery: TEncodingQuery
       read fOnEncodingQuery write fOnEncodingQuery;
+    ///  <summary>Determines whether the comment styles combo and associated
+    ///  controls are enabled, and so can be changed, or are disabled.</summary>
+    property EnableCommentStyles: Boolean
+      read fEnableCommentStyles write fEnableCommentStyles default True;
     ///  <summary>Re-implementation of inherited property to overcome apparent
     ///  bug where property forgets selected filter when dialog box is closed.
     ///  </summary>
@@ -316,6 +323,9 @@ begin
 
   // set dialog options
   Options := [ofPathMustExist, ofEnableIncludeNotify];
+
+  // enable comment style selection
+  fEnableCommentStyles := True;
 
   // inhibit default help processing: we provide own help button and handling
   WantDefaultHelpSupport := False;
@@ -579,6 +589,9 @@ begin
     if TCommentStyle(fCmbCommentStyle.Items.Objects[Idx]) = fCommentStyle then
       fCmbCommentStyle.ItemIndex := Idx;
   end;
+  fCmbCommentStyle.Enabled := fEnableCommentStyles;
+  fLblCommentStyle.Enabled := fEnableCommentStyles;
+  fChkTruncateComment.Enabled := fEnableCommentStyles;
 end;
 
 procedure TSaveSourceDlg.UpdateCommentTruncation;
