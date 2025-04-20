@@ -215,16 +215,8 @@ begin
 end;
 
 function TSaveSourceMgr.FileTypeFromFilterIdx: TSourceFileType;
-var
-  FilterIdx: Integer; // dlg FilterIndex adjusted to be 0 based
 begin
-  FilterIdx := fSaveDlg.FilterIndex - 1;
-  Assert(
-    (FilterIdx >= Ord(Low(TSourceFileType)))
-      and (FilterIdx <= Ord(High(TSourceFileType))),
-    ClassName + '.FileTypeFromFilterIdx: FilerIdx out of range'
-  );
-  Result := TSourceFileType(FilterIdx)
+  Result := fSourceFileInfo.FileTypeFromFilterIdx(fSaveDlg.FilterIndex);
 end;
 
 function TSaveSourceMgr.GenerateOutput(const FileType: TSourceFileType):
