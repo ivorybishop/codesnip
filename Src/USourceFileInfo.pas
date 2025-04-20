@@ -17,6 +17,8 @@ interface
 
 
 uses
+  // Delphi
+  Generics.Collections,
   // Project
   UEncodings;
 
@@ -89,10 +91,12 @@ type
     var
       ///  <summary>Stores information about the different source code output
       //   types required by save source dialog boxes.</summary>
-      fFileTypeInfo: array[TSourceFileType] of TSourceFileTypeInfo;
+      fFileTypeInfo: TDictionary<TSourceFileType,TSourceFileTypeInfo>;
       //   <summary>Value of DefaultFileName property.</summary>
       fDefaultFileName: string;
     ///  <summary>Read accessor for FileTypeInfo property.</summary>
+    ///  <exception>Raises <c>EListError</c> if <c>FileType</c> is not contained
+    ///  in the property.</exception>
     function GetFileTypeInfo(const FileType: TSourceFileType):
       TSourceFileTypeInfo;
     ///  <summary>Write accessor for FileTypeInfo property.</summary>
@@ -103,11 +107,17 @@ type
     ///  necessary.</remarks>
     procedure SetDefaultFileName(const Value: string);
   public
+    constructor Create;
+    destructor Destroy; override;
+
     ///  <summary>Builds filter string for use in open / save dialog boxes from
     ///  descriptions and file extensions of each supported file type.</summary>
     function FilterString: string;
-    ///  <summary>Array of information about each supported file type that is
-    ///  of use to save source dialog boxes.</summary>
+    ///  <summary>Information about each supported file type that is of use to
+    ///  save source dialog boxes.</summary>
+    ///  <exception>A <c>EListError</c> exception is raised if no information
+    ///  relating to <c>FileType</c> has been stored in this property.
+    ///  </exception>
     property FileTypeInfo[const FileType: TSourceFileType]: TSourceFileTypeInfo
       read GetFileTypeInfo write SetFileTypeInfo;
     ///  <summary>Default source code file name.</summary>
@@ -130,6 +140,18 @@ uses
 
 { TSourceFileInfo }
 
+constructor TSourceFileInfo.Create;
+begin
+  inherited Create;
+  fFileTypeInfo := TDictionary<TSourceFileType,TSourceFileTypeInfo>.Create;
+end;
+
+destructor TSourceFileInfo.Destroy;
+begin
+  fFileTypeInfo.Free;
+  inherited;
+end;
+
 function TSourceFileInfo.FilterString: string;
 const
   cFilterFmt = '%0:s (*%1:s)|*%1:s';  // format string for creating file filter
@@ -139,6 +161,8 @@ begin
   Result := '';
   for FT := Low(TSourceFileType) to High(TSourceFileType) do
   begin
+    if not fFileTypeInfo.ContainsKey(FT) then
+      Continue;
     if Result <> '' then
       Result := Result + '|';
     Result := Result + Format(
@@ -175,7 +199,10 @@ end;
 procedure TSourceFileInfo.SetFileTypeInfo(const FileType: TSourceFileType;
   const Info: TSourceFileTypeInfo);
 begin
-  fFileTypeInfo[FileType] := Info;
+  if fFileTypeInfo.ContainsKey(FileType) then
+    fFileTypeInfo[FileType] := Info
+  else
+    fFileTypeInfo.Add(FileType, Info);
 end;
 
 { TSourceFileTypeInfo }
