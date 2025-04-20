@@ -90,10 +90,24 @@ type
   strict private
     var
       ///  <summary>Stores information about the different source code output
-      //   types required by save source dialog boxes.</summary>
+      ///  types required by save source dialog boxes.</summary>
       fFileTypeInfo: TDictionary<TSourceFileType,TSourceFileTypeInfo>;
-      //   <summary>Value of DefaultFileName property.</summary>
+      ///  <summary>Maps a one-based index of a file filter within the current
+      ///  filter string to the corresponding <c>TSourceFileType</c> that was
+      ///  used to create the filter string entry.</summary>
+      fFilterIdxToFileTypeMap: TDictionary<Integer,TSourceFileType>;
+      ///  <summary>Value of DefaultFileName property.</summary>
       fDefaultFileName: string;
+      ///  <summary>Filter string for use in open / save dialog boxes from
+      ///  descriptions and file extensions of each supported file type.
+      ///  </summary>
+      fFilterString: string;
+    ///  <summary>Generates a new filter string and filter index to file type
+    ///  map from the current state of the <c>FileTypeInfo</c> property.
+    ///  </summary>
+    ///  <remarks>This method MUST be called every time the <c>FileTypeInfo</c>
+    ///  property is updated.</remarks>
+    procedure GenerateFilterInfo;
     ///  <summary>Read accessor for FileTypeInfo property.</summary>
     ///  <exception>Raises <c>EListError</c> if <c>FileType</c> is not contained
     ///  in the property.</exception>
@@ -110,9 +124,14 @@ type
     constructor Create;
     destructor Destroy; override;
 
-    ///  <summary>Builds filter string for use in open / save dialog boxes from
+    ///  <summary>Returns filter string for use in open / save dialog boxes from
     ///  descriptions and file extensions of each supported file type.</summary>
     function FilterString: string;
+
+    ///  <summary>Returns the file type associated with a file filter at the
+    ///  given one-based index within the current filter string.</summary>
+    function FileTypeFromFilterIdx(const Idx: Integer): TSourceFileType;
+
     ///  <summary>Information about each supported file type that is of use to
     ///  save source dialog boxes.</summary>
     ///  <exception>A <c>EListError</c> exception is raised if no information
@@ -144,30 +163,48 @@ constructor TSourceFileInfo.Create;
 begin
   inherited Create;
   fFileTypeInfo := TDictionary<TSourceFileType,TSourceFileTypeInfo>.Create;
+  fFilterIdxToFileTypeMap := TDictionary<Integer,TSourceFileType>.Create;
 end;
 
 destructor TSourceFileInfo.Destroy;
 begin
+  fFilterIdxToFileTypeMap.Free;
   fFileTypeInfo.Free;
   inherited;
 end;
 
+function TSourceFileInfo.FileTypeFromFilterIdx(
+  const Idx: Integer): TSourceFileType;
+begin
+  Result := fFilterIdxToFileTypeMap[Idx];
+end;
+
 function TSourceFileInfo.FilterString: string;
+begin
+  Result := fFilterString;
+end;
+
+procedure TSourceFileInfo.GenerateFilterInfo;
 const
   cFilterFmt = '%0:s (*%1:s)|*%1:s';  // format string for creating file filter
 var
   FT: TSourceFileType;  // loops thru all source file types
+  FilterIdx: Integer;   // current index in filter string
 begin
-  Result := '';
+  fFilterIdxToFileTypeMap.Clear;
+  FilterIdx := 1;     // filter index is one based
+  fFilterString := '';
   for FT := Low(TSourceFileType) to High(TSourceFileType) do
   begin
     if not fFileTypeInfo.ContainsKey(FT) then
       Continue;
-    if Result <> '' then
-      Result := Result + '|';
-    Result := Result + Format(
+    if fFilterString <> '' then
+      fFilterString := fFilterString + '|';
+    fFilterString := fFilterString + Format(
       cFilterFmt, [fFileTypeInfo[FT].DisplayName, fFileTypeInfo[FT].Extension]
     );
+    fFilterIdxToFileTypeMap.Add(FilterIdx, FT);
+    Inc(FilterIdx);
   end;
 end;
 
@@ -203,6 +240,7 @@ begin
     fFileTypeInfo[FileType] := Info
   else
     fFileTypeInfo.Add(FileType, Info);
+  GenerateFilterInfo;
 end;
 
 { TSourceFileTypeInfo }
