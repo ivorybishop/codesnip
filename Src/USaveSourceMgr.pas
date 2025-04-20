@@ -40,20 +40,16 @@ type
     ///  extension.</summary>
     ///  <param name="Sender">TObject [in] Reference to object that triggered
     ///  event.</param>
-    ///  <param name="Ext">string [in] Name of extension to check.</param>
     ///  <param name="CanHilite">Boolean [in/out] Set to True if highlighting
     ///  supported for extension or False if not.</param>
-    procedure HiliteQueryHandler(Sender: TObject; const Ext: string;
-      var CanHilite: Boolean);
+    procedure HiliteQueryHandler(Sender: TObject; var CanHilite: Boolean);
     ///  <summary>Handles custom save dialog box's OnEncodingQuery event.
     ///  Provides array of encodings supported for a file extension.</summary>
     ///  <param name="Sender">TObject [in] Reference to object that triggered
     ///  event.</param>
-    ///  <param name="FilterIdx">string [in] Index of file type withing dialog's
-    ///  filter string to check.</param>
     ///  <param name="Encodings">TSourceFileEncodings [in/out] Receives array of
     ///  supported encodings.</param>
-    procedure EncodingQueryHandler(Sender: TObject; const FilterIdx: Integer;
+    procedure EncodingQueryHandler(Sender: TObject;
       var Encodings: TSourceFileEncodings);
     ///  <summary>Handles custom save dialog's OnPreview event. Displays source
     ///  code appropriately formatted in preview dialog box.</summary>
@@ -206,7 +202,7 @@ begin
 end;
 
 procedure TSaveSourceMgr.EncodingQueryHandler(Sender: TObject;
-  const FilterIdx: Integer; var Encodings: TSourceFileEncodings);
+  var Encodings: TSourceFileEncodings);
 var
   FileType: TSourceFileType;  // type of file that has given extension
 begin
@@ -238,7 +234,7 @@ begin
   end;
 end;
 
-procedure TSaveSourceMgr.HiliteQueryHandler(Sender: TObject; const Ext: string;
+procedure TSaveSourceMgr.HiliteQueryHandler(Sender: TObject;
   var CanHilite: Boolean);
 begin
   CanHilite := IsHilitingSupported(FileTypeFromFilterIdx);

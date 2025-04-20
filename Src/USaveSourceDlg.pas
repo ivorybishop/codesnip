@@ -27,22 +27,17 @@ type
   ///  <summary>Type of handler for events triggered by TSaveSourceDlg to check
   ///  if a file type supports syntax highlighting.</summary>
   ///  <param name="Sender">TObject [in] Object triggering event.</param>
-  ///  <param name="Ext">string [in] Extension that defines type of file being
-  ///  queried.</param>
   ///  <param name="CanHilite">Boolean [in/out] Set to true if file type
   ///  supports syntax highlighting.</param>
-  THiliteQuery = procedure(Sender: TObject; const Ext: string;
-    var CanHilite: Boolean) of object;
+  THiliteQuery = procedure(Sender: TObject; var CanHilite: Boolean) of object;
 
 type
   ///  <summary>Type of handler for event triggered by TSaveSourceDlg to get
   ///  list of encodings supported for a file type.</summary>
   ///  <param name="Sender">TObject [in] Object triggering event.</param>
-  ///  <param name="FilterIdx">string [in] Filter index that specifies the type
-  ///  of file being queried.</param>
   ///  <param name="Encodings">TSourceFileEncodings [in/out] Assigned an array
   ///  of records that specify supported encodings.</param>
-  TEncodingQuery = procedure(Sender: TObject; const FilterIdx: Integer;
+  TEncodingQuery = procedure(Sender: TObject;
     var Encodings: TSourceFileEncodings) of object;
 
 type
@@ -475,7 +470,7 @@ begin
   // Update enabled state of syntax highlighter checkbox
   CanHilite := False;
   if Assigned(fOnHiliteQuery) then
-    fOnHiliteQuery(Self, SelectedExt, CanHilite);
+    fOnHiliteQuery(Self, CanHilite);
   fChkSyntaxHilite.Enabled := CanHilite;
 
   // Store selected type
@@ -485,7 +480,7 @@ begin
   // handle OnEncodingQuery)
   SetLength(Encodings, 0);
   if Assigned(fOnEncodingQuery) then
-    fOnEncodingQuery(Self, FilterIndex, Encodings);
+    fOnEncodingQuery(Self, Encodings);
   if Length(Encodings) = 0 then
     Encodings := TSourceFileEncodings.Create(
       TSourceFileEncoding.Create(etSysDefault, sANSIEncoding)
