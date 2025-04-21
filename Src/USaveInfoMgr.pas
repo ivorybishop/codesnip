@@ -18,6 +18,7 @@ uses
   // Project
   UBaseObjects,
   UEncodings,
+  UHTMLSnippetDoc,
   USaveSourceDlg,
   USourceFileInfo,
   UView;
@@ -38,6 +39,17 @@ type
     ///  information about the snippet represented by the given view.</summary>
     class function GenerateRichText(View: IView; const AUseHiliting: Boolean):
       TEncodedData; static;
+
+    ///  <summary>Returns encoded data containing a HTML representation of the
+    ///  required snippet information.</summary>
+    ///  <param name="AUseHiliting"><c>Boolean</c> [in] Determines whether
+    ///  source code is syntax highlighted or not.</param>
+    ///  <param name="GeneratorClass"><c>THTMLSnippetDocClass</c> [in] Class of
+    ///  object used to generate the required flavour of HTML.</param>
+    ///  <returns><c>TEncodedData</c>. Required HTML document, encoded as UTF-8.
+    ///  </returns>
+    function GenerateHTML(const AUseHiliting: Boolean;
+      const GeneratorClass: THTMLSnippetDocClass): TEncodedData;
 
     ///  <summary>Returns encoded data containing a plain text representation of
     ///  information about the snippet represented by the given view.</summary>
@@ -191,6 +203,24 @@ begin
   end;
 end;
 
+function TSaveInfoMgr.GenerateHTML(const AUseHiliting: Boolean;
+  const GeneratorClass: THTMLSnippetDocClass): TEncodedData;
+var
+  Doc: THTMLSnippetDoc;      // object that generates RTF document
+  HiliteAttrs: IHiliteAttrs;  // syntax highlighter formatting attributes
+begin
+  if (fView as ISnippetView).Snippet.HiliteSource and AUseHiliting then
+    HiliteAttrs := THiliteAttrsFactory.CreateUserAttrs
+  else
+    HiliteAttrs := THiliteAttrsFactory.CreateNulAttrs;
+  Doc := GeneratorClass.Create(HiliteAttrs);
+  try
+    Result := Doc.Generate((fView as ISnippetView).Snippet);
+  finally
+    Doc.Free;
+  end;
+end;
+
 function TSaveInfoMgr.GenerateOutput(const FileType: TSourceFileType):
   TEncodedData;
 var
@@ -201,6 +231,8 @@ begin
   case FileType of
     sfRTF: Result := GenerateRichText(fView, UseHiliting);
     sfText: Result := GeneratePlainText;
+    sfHTML5: Result := GenerateHTML(UseHiliting, THTML5SnippetDoc);
+    sfXHTML: Result := GenerateHTML(UseHiliting, TXHTMLSnippetDoc);
   end;
 end;
 
@@ -264,6 +296,8 @@ resourcestring
   // descriptions of supported file filter strings
   sRTFDesc = 'Rich text file';
   sTextDesc = 'Plain text file';
+  sHTML5Desc = 'HTML 5 file';
+  sXHTMLDesc = 'XHTML file';
 begin
   inherited InternalCreate;
   fView := AView;
@@ -284,6 +318,21 @@ begin
       TSourceFileEncoding.Create(etUTF16LE, sUTF16LEEncoding),
       TSourceFileEncoding.Create(etUTF16BE, sUTF16BEEncoding),
       TSourceFileEncoding.Create(etSysDefault, sANSIDefaultEncoding)
+    ]
+  );
+  fSourceFileInfo.FileTypeInfo[sfHTML5] := TSourceFileTypeInfo.Create(
+    '.html',
+    sHTML5Desc,
+    [
+      TSourceFileEncoding.Create(etUTF8, sUTF8Encoding)
+    ]
+  );
+  fSourceFileInfo.DefaultFileName := sDefFileName;
+  fSourceFileInfo.FileTypeInfo[sfXHTML] := TSourceFileTypeInfo.Create(
+    '.html',
+    sXHTMLDesc,
+    [
+      TSourceFileEncoding.Create(etUTF8, sUTF8Encoding)
     ]
   );
   fSourceFileInfo.DefaultFileName := sDefFileName;
@@ -314,21 +363,28 @@ begin
   case SelectedFileType of
     sfRTF:
     begin
+      // RTF is previewed as is
       PreviewDocType := dtRTF;
       PreviewFileType := sfRTF;
     end;
     sfText:
     begin
+      // Plain text us previewed as is
       PreviewDocType := dtPlainText;
       PreviewFileType := sfText;
+    end;
+    sfHTML5, sfXHTML:
+    begin
+      // Both HTML 5 and XHTML are previewed as XHTML
+      PreviewDocType := dtHTML;
+      PreviewFileType := sfXHTML;
     end;
     else
       raise Exception.Create(
         ClassName + '.PreviewHandler: unsupported file type'
       );
   end;
-  // Display preview dialog box. We use save dialog as owner to ensure preview
-  // dialog box is aligned over save dialog box
+  // Display preview dialogue box aligned over the save dialogue
   TPreviewDlg.Execute(
     fSaveDlg,
     GenerateOutput(PreviewFileType),
