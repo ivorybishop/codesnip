@@ -378,7 +378,8 @@ uses
   USaveInfoMgr in 'USaveInfoMgr.pas',
   ClassHelpers.RichEdit in 'ClassHelpers.RichEdit.pas',
   UHTMLSnippetDoc in 'UHTMLSnippetDoc.pas',
-  UMarkdownUtils in 'UMarkdownUtils.pas';
+  UMarkdownUtils in 'UMarkdownUtils.pas',
+  ActiveText.UMarkdownRenderer in 'ActiveText.UMarkdownRenderer.pas';
 
 // Include resources
 {$Resource ExternalObj.tlb}       // Type library file
