@@ -584,6 +584,7 @@
 			<DCCReference Include="USaveInfoMgr.pas"/>
 			<DCCReference Include="ClassHelpers.RichEdit.pas"/>
 			<DCCReference Include="UHTMLSnippetDoc.pas"/>
+			<DCCReference Include="UMarkdownUtils.pas"/>
 			<None Include="CodeSnip.todo"/>
 			<BuildConfiguration Include="Base">
 				<Key>Base</Key>

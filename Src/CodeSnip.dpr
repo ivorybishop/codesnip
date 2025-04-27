@@ -377,7 +377,8 @@ uses
   ClassHelpers.UActions in 'ClassHelpers.UActions.pas',
   USaveInfoMgr in 'USaveInfoMgr.pas',
   ClassHelpers.RichEdit in 'ClassHelpers.RichEdit.pas',
-  UHTMLSnippetDoc in 'UHTMLSnippetDoc.pas';
+  UHTMLSnippetDoc in 'UHTMLSnippetDoc.pas',
+  UMarkdownUtils in 'UMarkdownUtils.pas';
 
 // Include resources
 {$Resource ExternalObj.tlb}       // Type library file
