@@ -242,9 +242,12 @@ end;
 function TSaveUnitMgr.GetFileTypeDesc(const FileType: TSourceFileType): string;
 const
   Descriptions: array[TSourceFileType] of string = (
-    sTextDesc, sPascalDesc, sHTML5Desc, sXHTMLDesc, sRTFDesc
+    sTextDesc, sPascalDesc, sHTML5Desc, sXHTMLDesc, sRTFDesc,
+    '' {Markdown not supported}
   );
 begin
+  Assert(FileType <> sfMarkdown,
+    ClassName + '.GetFileTypeDesc: Markdown not supported');
   Result := Descriptions[FileType];
 end;
 

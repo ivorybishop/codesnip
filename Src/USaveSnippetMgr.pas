@@ -171,9 +171,12 @@ function TSaveSnippetMgr.GetFileTypeDesc(
   const FileType: TSourceFileType): string;
 const
   Descriptions: array[TSourceFileType] of string = (
-    sTxtExtDesc, sIncExtDesc, sHtml5ExtDesc, sXHtmExtDesc, sRtfExtDesc
+    sTxtExtDesc, sIncExtDesc, sHtml5ExtDesc, sXHtmExtDesc, sRtfExtDesc,
+    '' {Markdown not supported}
   );
 begin
+  Assert(FileType <> sfMarkdown,
+    ClassName + '.GetFileTypeDesc: Markdown not supported');
   Result := Descriptions[FileType];
 end;
 
