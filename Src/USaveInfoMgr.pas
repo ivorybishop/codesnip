@@ -231,6 +231,7 @@ end;
 function TSaveInfoMgr.GenerateMarkdown: TEncodedData;
 var
   Doc: TMarkdownSnippetDoc;
+  GeneratedData: TEncodedData;
 begin
   Assert(Supports(fView, ISnippetView),
     ClassName + '.GeneratePlainText: View is not a snippet view');
@@ -238,7 +239,10 @@ begin
     (fView as ISnippetView).Snippet.Kind <> skFreeform
   );
   try
-    Result := Doc.Generate((fView as ISnippetView).Snippet);
+    GeneratedData := Doc.Generate((fView as ISnippetView).Snippet);
+    Result := TEncodedData.Create(
+      GeneratedData.ToString, fSaveDlg.SelectedEncoding
+    );
   finally
     Doc.Free;
   end;
@@ -264,13 +268,17 @@ function TSaveInfoMgr.GeneratePlainText: TEncodedData;
 var
   Doc: TTextSnippetDoc;        // object that generates RTF document
   HiliteAttrs: IHiliteAttrs;  // syntax highlighter formatting attributes
+  GeneratedData: TEncodedData;
 begin
   Assert(Supports(fView, ISnippetView),
     ClassName + '.GeneratePlainText: View is not a snippet view');
   HiliteAttrs := THiliteAttrsFactory.CreateNulAttrs;
   Doc := TTextSnippetDoc.Create;
   try
-    Result := Doc.Generate((fView as ISnippetView).Snippet);
+    GeneratedData := Doc.Generate((fView as ISnippetView).Snippet);
+    Result := TEncodedData.Create(
+      GeneratedData.ToString, fSaveDlg.SelectedEncoding
+    );
   finally
     Doc.Free;
   end;
