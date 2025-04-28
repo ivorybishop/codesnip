@@ -5,8 +5,8 @@
  *
  * Copyright (C) 2025, Peter Johnson (gravatar.com/delphidabbler).
  *
- * Saves information about a snippet to disk in rich text format. Only routine
- * snippet kinds are supported.
+ * Saves information about a snippet to disk in various, user specifed, formats.
+ * Only routine snippet kinds are supported.
 }
 
 
@@ -54,6 +54,12 @@ type
     ///  <summary>Returns encoded data containing a plain text representation of
     ///  information about the snippet represented by the given view.</summary>
     function GeneratePlainText: TEncodedData;
+
+    ///  <summary>Returns encoded data containing a Markdown representation of
+    ///  information about the snippet represented by the given view.</summary>
+    ///  <returns><c>TEncodedData</c>. Required Markdown document, encoded as
+    ///  UTF-16.</returns>
+    function GenerateMarkdown: TEncodedData;
 
     ///  <summary>Returns type of file selected in the associated save dialogue
     ///  box.</summary>
@@ -127,11 +133,13 @@ uses
   SysUtils,
   Dialogs,
   // Project
+  DB.USnippetKind,
   FmPreviewDlg,
   Hiliter.UAttrs,
   Hiliter.UFileHiliter,
   Hiliter.UGlobals,
   UIOUtils,
+  UMarkdownSnippetDoc,
   UOpenDialogHelper,
   UPreferences,
   URTFSnippetDoc,
@@ -171,7 +179,6 @@ begin
   if fSaveDlg.Execute then
   begin
     FileType := SelectedFileType;
-    FileContent := GenerateOutput(FileType).ToString;
     Encoding := TEncodingHelper.GetEncoding(fSaveDlg.SelectedEncoding);
     try
       FileContent := GenerateOutput(FileType).ToString;
@@ -221,6 +228,22 @@ begin
   end;
 end;
 
+function TSaveInfoMgr.GenerateMarkdown: TEncodedData;
+var
+  Doc: TMarkdownSnippetDoc;
+begin
+  Assert(Supports(fView, ISnippetView),
+    ClassName + '.GeneratePlainText: View is not a snippet view');
+  Doc := TMarkdownSnippetDoc.Create(
+    (fView as ISnippetView).Snippet.Kind <> skFreeform
+  );
+  try
+    Result := Doc.Generate((fView as ISnippetView).Snippet);
+  finally
+    Doc.Free;
+  end;
+end;
+
 function TSaveInfoMgr.GenerateOutput(const FileType: TSourceFileType):
   TEncodedData;
 var
@@ -233,6 +256,7 @@ begin
     sfText: Result := GeneratePlainText;
     sfHTML5: Result := GenerateHTML(UseHiliting, THTML5SnippetDoc);
     sfXHTML: Result := GenerateHTML(UseHiliting, TXHTMLSnippetDoc);
+    sfMarkdown: Result := GenerateMarkdown;
   end;
 end;
 
@@ -298,6 +322,7 @@ resourcestring
   sTextDesc = 'Plain text file';
   sHTML5Desc = 'HTML 5 file';
   sXHTMLDesc = 'XHTML file';
+  sMarkdownDesc = 'Markdown file';
 begin
   inherited InternalCreate;
   fView := AView;
@@ -333,6 +358,17 @@ begin
     sXHTMLDesc,
     [
       TSourceFileEncoding.Create(etUTF8, sUTF8Encoding)
+    ]
+  );
+  fSourceFileInfo.DefaultFileName := sDefFileName;
+  fSourceFileInfo.FileTypeInfo[sfMarkdown] := TSourceFileTypeInfo.Create(
+    '.md',
+    sMarkdownDesc,
+    [
+      TSourceFileEncoding.Create(etUTF8, sUTF8Encoding),
+      TSourceFileEncoding.Create(etUTF16LE, sUTF16LEEncoding),
+      TSourceFileEncoding.Create(etUTF16BE, sUTF16BEEncoding),
+      TSourceFileEncoding.Create(etSysDefault, sANSIDefaultEncoding)
     ]
   );
   fSourceFileInfo.DefaultFileName := sDefFileName;
@@ -378,6 +414,12 @@ begin
       // Both HTML 5 and XHTML are previewed as XHTML
       PreviewDocType := dtHTML;
       PreviewFileType := sfXHTML;
+    end;
+    sfMarkdown:
+    begin
+      // Markdown is previewed as plain text
+      PreviewDocType := dtPlainText;
+      PreviewFileType := sfMarkdown;
     end;
     else
       raise Exception.Create(

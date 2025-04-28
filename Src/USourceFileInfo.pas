@@ -32,7 +32,8 @@ type
     sfPascal,   // pascal files (either .pas for units or .inc for include files
     sfHTML5,    // HTML 5 files
     sfXHTML,    // XHTML files
-    sfRTF       // rich text files
+    sfRTF,      // rich text files
+    sfMarkdown  // Markdown files
   );
 
 type
@@ -132,6 +133,13 @@ type
     ///  given one-based index within the current filter string.</summary>
     function FileTypeFromFilterIdx(const Idx: Integer): TSourceFileType;
 
+    ///  <summary>Checks if a file type is supported.</summary>
+    ///  <param name="FileType"><c>TSourceFileType</c> [in] File type to check.
+    ///  </param>
+    ///  <returns><c>Boolean</c>. <c>True</c> if file type is supported,
+    ///  <c>False</c> if not.</returns>
+    function SupportsFileType(const FileType: TSourceFileType): Boolean;
+
     ///  <summary>Information about each supported file type that is of use to
     ///  save source dialog boxes.</summary>
     ///  <exception>A <c>EListError</c> exception is raised if no information
@@ -139,6 +147,7 @@ type
     ///  </exception>
     property FileTypeInfo[const FileType: TSourceFileType]: TSourceFileTypeInfo
       read GetFileTypeInfo write SetFileTypeInfo;
+
     ///  <summary>Default source code file name.</summary>
     ///  <remarks>Must be a valid Pascal identifier. Invalid characters are
     ///  replaced by underscores.</remarks>
@@ -241,6 +250,12 @@ begin
   else
     fFileTypeInfo.Add(FileType, Info);
   GenerateFilterInfo;
+end;
+
+function TSourceFileInfo.SupportsFileType(const FileType: TSourceFileType):
+  Boolean;
+begin
+  Result := fFileTypeInfo.ContainsKey(FileType);
 end;
 
 { TSourceFileTypeInfo }

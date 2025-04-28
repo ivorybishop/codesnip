@@ -181,11 +181,14 @@ var
 begin
   // Set up dialog box
   fSaveDlg.Filter := fSourceFileInfo.FilterString;
-  fSaveDlg.FilterIndex := FilterDescToIndex(
-    fSaveDlg.Filter,
-    fSourceFileInfo.FileTypeInfo[Preferences.SourceDefaultFileType].DisplayName,
-    1
-  );
+  if fSourceFileInfo.SupportsFileType(Preferences.SourceDefaultFileType) then
+    fSaveDlg.FilterIndex := FilterDescToIndex(
+      fSaveDlg.Filter,
+      fSourceFileInfo.FileTypeInfo[Preferences.SourceDefaultFileType].DisplayName,
+      1
+    )
+  else
+    fSaveDlg.FilterIndex := 1;
   fSaveDlg.FileName := fSourceFileInfo.DefaultFileName;
   // Display dialog box and save file if user OKs
   if fSaveDlg.Execute then
@@ -317,7 +320,8 @@ const
     dtPlainText,  // sfPascal
     dtHTML,       // sfHTML5
     dtHTML,       // sfXHTML
-    dtRTF         // sfRTF
+    dtRTF,        // sfRTF
+    dtPlainText   // sfMarkdown
   );
   PreviewFileTypeMap: array[TPreviewDocType] of TSourceFileType = (
     sfText,       // dtPlainText
