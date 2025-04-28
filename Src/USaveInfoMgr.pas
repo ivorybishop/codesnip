@@ -35,6 +35,10 @@ type
       fSaveDlg: TSaveSourceDlg;
       fSourceFileInfo: TSourceFileInfo;
 
+    ///  <summary>Displays a warning message about data loss if
+    ///  <c>ExpectedStr</c> doesn't match <c>EncodedStr</c>.</summary>
+    class procedure WarnIfDataLoss(const ExpectedStr, EncodedStr: string);
+
     ///  <summary>Returns encoded data containing a RTF representation of
     ///  information about the snippet represented by the given view.</summary>
     class function GenerateRichText(View: IView; const AUseHiliting: Boolean):
@@ -140,6 +144,7 @@ uses
   Hiliter.UGlobals,
   UIOUtils,
   UMarkdownSnippetDoc,
+  UMessageBox,
   UOpenDialogHelper,
   UPreferences,
   URTFSnippetDoc,
@@ -231,18 +236,20 @@ end;
 function TSaveInfoMgr.GenerateMarkdown: TEncodedData;
 var
   Doc: TMarkdownSnippetDoc;
-  GeneratedData: TEncodedData;
+  ExpectedMarkown: string;
 begin
   Assert(Supports(fView, ISnippetView),
-    ClassName + '.GeneratePlainText: View is not a snippet view');
+    ClassName + '.GenerateMarkdown: View is not a snippet view');
   Doc := TMarkdownSnippetDoc.Create(
     (fView as ISnippetView).Snippet.Kind <> skFreeform
   );
   try
-    GeneratedData := Doc.Generate((fView as ISnippetView).Snippet);
-    Result := TEncodedData.Create(
-      GeneratedData.ToString, fSaveDlg.SelectedEncoding
-    );
+    // Generate Markdown using default UTF-16 encoding
+    ExpectedMarkown := Doc.Generate((fView as ISnippetView).Snippet).ToString;
+    // Convert Markdown to encoding to that selected in save dialogue box
+    Result := TEncodedData.Create(ExpectedMarkown, fSaveDlg.SelectedEncoding);
+    // Check for data loss in required encoding
+    WarnIfDataLoss(ExpectedMarkown, Result.ToString);
   finally
     Doc.Free;
   end;
@@ -266,19 +273,23 @@ end;
 
 function TSaveInfoMgr.GeneratePlainText: TEncodedData;
 var
-  Doc: TTextSnippetDoc;        // object that generates RTF document
-  HiliteAttrs: IHiliteAttrs;  // syntax highlighter formatting attributes
-  GeneratedData: TEncodedData;
+  Doc: TTextSnippetDoc;        // object that generates plain text document
+  HiliteAttrs: IHiliteAttrs;   // syntax highlighter formatting attributes
+  ExpectedText: string;        // expected plain text
 begin
   Assert(Supports(fView, ISnippetView),
     ClassName + '.GeneratePlainText: View is not a snippet view');
   HiliteAttrs := THiliteAttrsFactory.CreateNulAttrs;
   Doc := TTextSnippetDoc.Create;
   try
-    GeneratedData := Doc.Generate((fView as ISnippetView).Snippet);
+    // Generate text using default UTF-16 encoding
+    ExpectedText := Doc.Generate((fView as ISnippetView).Snippet).ToString;
+    // Convert encoding to that selected in save dialogue box
     Result := TEncodedData.Create(
-      GeneratedData.ToString, fSaveDlg.SelectedEncoding
+      ExpectedText, fSaveDlg.SelectedEncoding
     );
+    // Check for data loss in required encoding
+    WarnIfDataLoss(ExpectedText, Result.ToString);
   finally
     Doc.Free;
   end;
@@ -446,6 +457,17 @@ end;
 function TSaveInfoMgr.SelectedFileType: TSourceFileType;
 begin
   Result := fSourceFileInfo.FileTypeFromFilterIdx(fSaveDlg.FilterIndex);
+end;
+
+class procedure TSaveInfoMgr.WarnIfDataLoss(const ExpectedStr,
+  EncodedStr: string);
+resourcestring
+  sEncodingError = 'The selected snippet contains characters that can''t be '
+    + 'represented in the chosen file encoding.' + sLineBreak + sLineBreak
+    + 'Please compare the output to the snippet displayed in the Details pane.';
+begin
+  if ExpectedStr <> EncodedStr then
+    TMessageBox.Warning(nil, sEncodingError);
 end;
 
 end.
