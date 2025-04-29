@@ -151,6 +151,8 @@ begin
 end;
 
 procedure TSaveInfoMgr.DoExecute;
+resourcestring
+  sDlgCaption = 'Save Snippet Information for %s';
 var
   Encoding: TEncoding;        // encoding to use for output file
   FileContent: string;        // output file content before encoding
@@ -164,6 +166,9 @@ begin
     1
   );
   fSaveDlg.FileName := fSourceFileInfo.DefaultFileName;
+  fSaveDlg.Title := Format(sDlgCaption, [
+    (fView as ISnippetView).Snippet.DisplayName]
+  );
   // Display dialog box and save file if user OKs
   if fSaveDlg.Execute then
   begin
@@ -269,7 +274,6 @@ const
   DlgHelpKeyword = 'SnippetInfoFileDlg';
 resourcestring
   sDefFileName = 'SnippetInfo';
-  sDlgCaption = 'Save Snippet Information';
   // descriptions of supported file filter strings
   sRTFDesc = 'Rich text file';
   sTextDesc = 'Plain text file';
@@ -312,7 +316,6 @@ begin
   fSourceFileInfo.DefaultFileName := sDefFileName;
 
   fSaveDlg := TSaveSourceDlg.Create(nil);
-  fSaveDlg.Title := sDlgCaption;
   fSaveDlg.HelpKeyword := DlgHelpKeyword;
   fSaveDlg.CommentStyle := TCommentStyle.csNone;
   fSaveDlg.EnableCommentStyles := False;
