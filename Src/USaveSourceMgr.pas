@@ -134,8 +134,8 @@ uses
   // Delphi
   SysUtils,
   // Project
-  FmPreviewDlg, Hiliter.UFileHiliter, UIOUtils, UMessageBox, UOpenDialogHelper,
-  UPreferences;
+  FmPreviewDlg, Hiliter.UFileHiliter, UIOUtils, UMessageBox,
+  UOpenDialogHelper, UPreferences;
 
 
 { TSaveSourceMgr }
@@ -244,53 +244,33 @@ begin
 end;
 
 constructor TSaveSourceMgr.InternalCreate;
-resourcestring
-  // descriptions of supported encodings
-  sANSIDefaultEncoding = 'ANSI (Default)';
-  sUTF8Encoding = 'UTF-8';
-  sUTF16LEEncoding = 'Unicode (Little Endian)';
-  sUTF16BEEncoding = 'Unicode (Big Endian)';
 begin
   inherited InternalCreate;
   fSourceFileInfo := TSourceFileInfo.Create;
   fSourceFileInfo.FileTypeInfo[sfText] := TSourceFileTypeInfo.Create(
     '.txt',
     GetFileTypeDesc(sfText),
-    [
-      TSourceFileEncoding.Create(etSysDefault, sANSIDefaultEncoding),
-      TSourceFileEncoding.Create(etUTF8, sUTF8Encoding),
-      TSourceFileEncoding.Create(etUTF16LE, sUTF16LEEncoding),
-      TSourceFileEncoding.Create(etUTF16BE, sUTF16BEEncoding)
-    ]
+    [etSysDefault, etUTF8, etUTF16LE, etUTF16BE]
   );
   fSourceFileInfo.FileTypeInfo[sfPascal] := TSourceFileTypeInfo.Create(
     '.pas',
     GetFileTypeDesc(sfPascal),
-    [
-      TSourceFileEncoding.Create(etSysDefault, sANSIDefaultEncoding),
-      TSourceFileEncoding.Create(etUTF8, sUTF8Encoding)
-    ]
+    [etSysDefault, etUTF8]
   );
   fSourceFileInfo.FileTypeInfo[sfHTML5] := TSourceFileTypeInfo.Create(
     '.html',
     GetFileTypeDesc(sfHTML5),
-    [
-      TSourceFileEncoding.Create(etUTF8, sUTF8Encoding)
-    ]
+    [etUTF8]
   );
   fSourceFileInfo.FileTypeInfo[sfXHTML] := TSourceFileTypeInfo.Create(
     '.html',
     GetFileTypeDesc(sfXHTML),
-    [
-      TSourceFileEncoding.Create(etUTF8, sUTF8Encoding)
-    ]
+    [etUTF8]
   );
   fSourceFileInfo.FileTypeInfo[sfRTF] := TSourceFileTypeInfo.Create(
     '.rtf',
     GetFileTypeDesc(sfRTF),
-    [
-      TSourceFileEncoding.Create(etSysDefault, sANSIDefaultEncoding)
-    ]
+    [etASCII]
  );
   fSourceFileInfo.DefaultFileName := GetDefaultFileName;
 

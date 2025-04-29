@@ -228,8 +228,6 @@ resourcestring
   sChkTruncateComment = 'Truncate comments to 1st paragraph';
   sBtnPreview = '&Preview...';
   sBtnHelp = '&Help';
-  // Default encoding name
-  sANSIEncoding = 'ANSI (Default)';
 
 
 const
@@ -483,7 +481,7 @@ begin
     fOnEncodingQuery(Self, Encodings);
   if Length(Encodings) = 0 then
     Encodings := TSourceFileEncodings.Create(
-      TSourceFileEncoding.Create(etSysDefault, sANSIEncoding)
+      TSourceFileEncoding.Create(etSysDefault)
     );
   fCmbEncoding.Clear;
   for Encoding in Encodings do
@@ -495,6 +493,8 @@ begin
   fCmbEncoding.ItemIndex := IndexOfEncodingType(fSelectedEncoding);
   if fCmbEncoding.ItemIndex = -1 then
     fCmbEncoding.ItemIndex := 0;
+  fCmbEncoding.Enabled := fCmbEncoding.Items.Count > 1;
+  fLblEncoding.Enabled := fCmbEncoding.Enabled;
   DoEncodingChange;
 
   inherited;

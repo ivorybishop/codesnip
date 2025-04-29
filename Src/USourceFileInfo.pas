@@ -46,11 +46,15 @@ type
     fEncodingType: TEncodingType; // Value of EncodingType property
     fDisplayName: string;         // Value of DisplayName property
   public
-    ///  <summary>Sets values of properties.</summary>
-    constructor Create(const AEncodingType: TEncodingType;
-      const ADisplayName: string);
+    ///  <summary>Sets the value of the <c>EncodingType</c> property.</summary>
+    ///  <remarks>The <c>DisplayName</c> property is dependent on the value of
+    ///  the <c>EncodingType</c> property and so can't be set explicitly.
+    ///  </remarks>
+    constructor Create(const AEncodingType: TEncodingType);
+
     ///  <summary>Type of this encoding.</summary>
     property EncodingType: TEncodingType read fEncodingType;
+
     ///  <summary>Description of encoding for display in dialog box.</summary>
     property DisplayName: string read fDisplayName;
   end;
@@ -72,7 +76,7 @@ type
   public
     ///  <summary>Sets values of properties.</summary>
     constructor Create(const AExtension, ADisplayName: string;
-      const AEncodings: array of TSourceFileEncoding);
+      const AEncodingTypes: array of TEncodingType);
     ///  <summary>File extension associated with this file type.</summary>
     property Extension: string read fExtension;
     ///  <summary>Name of file extension to display in save dialog box.
@@ -99,6 +103,8 @@ type
       fFilterIdxToFileTypeMap: TDictionary<Integer,TSourceFileType>;
       ///  <summary>Value of DefaultFileName property.</summary>
       fDefaultFileName: string;
+      ///  <summary>Value of <c>RequirePascalDefFileName</c> property.</summary>
+      fRequirePascalDefFileName: Boolean;
       ///  <summary>Filter string for use in open / save dialog boxes from
       ///  descriptions and file extensions of each supported file type.
       ///  </summary>
@@ -149,10 +155,18 @@ type
       read GetFileTypeInfo write SetFileTypeInfo;
 
     ///  <summary>Default source code file name.</summary>
-    ///  <remarks>Must be a valid Pascal identifier. Invalid characters are
-    ///  replaced by underscores.</remarks>
+    ///  <remarks>If, and only if, <c>RequirePascalDefFileName</c> is
+    ///  <c>True</c> the default file name is modified so that name is a valid
+    ///  Pascal identifier.</remarks>
     property DefaultFileName: string
       read fDefaultFileName write SetDefaultFileName;
+
+    ///  <summary>Determines whether any value assigned to
+    ///  <c>DefaultFileName</c> is converted to a valid Pascal identifier or
+    ///  not.</summary>
+    property RequirePascalDefFileName: Boolean
+      read fRequirePascalDefFileName write fRequirePascalDefFileName
+      default True;
   end;
 
 
@@ -163,6 +177,7 @@ uses
   // Delphi
   SysUtils, Windows {for inlining}, Character,
   // Project
+  ULocales,
   UStrUtils;
 
 
@@ -173,6 +188,7 @@ begin
   inherited Create;
   fFileTypeInfo := TDictionary<TSourceFileType,TSourceFileTypeInfo>.Create;
   fFilterIdxToFileTypeMap := TDictionary<Integer,TSourceFileType>.Create;
+  fRequirePascalDefFileName := True;
 end;
 
 destructor TSourceFileInfo.Destroy;
@@ -227,19 +243,24 @@ procedure TSourceFileInfo.SetDefaultFileName(const Value: string);
 var
   Idx: Integer; // loops through characters of filename
 begin
-  // convert to "camel" case
-  fDefaultFileName := StrStripWhiteSpace(StrCapitaliseWords(Value));
-  // replaces invalid Pascal identifier characters with underscore
-  if (fDefaultFileName <> '')
-    and not TCharacter.IsLetter(fDefaultFileName[1])
-    and (fDefaultFileName[1] <> '_') then
-    fDefaultFileName[1] := '_';
-  for Idx := 2 to Length(fDefaultFileName) do
-    if not TCharacter.IsLetterOrDigit(fDefaultFileName[Idx])
-      and (fDefaultFileName[Idx] <> '_') then
-      fDefaultFileName[Idx] := '_';
-  Assert((fDefaultFileName <> '') and IsValidIdent(fDefaultFileName),
-    ClassName + '.SetFileName: Not a valid identifier');
+  if fRequirePascalDefFileName then
+  begin
+    // convert to "camel" case
+    fDefaultFileName := StrStripWhiteSpace(StrCapitaliseWords(Value));
+    // replaces invalid Pascal identifier characters with underscore
+    if (fDefaultFileName <> '')
+      and not TCharacter.IsLetter(fDefaultFileName[1])
+      and (fDefaultFileName[1] <> '_') then
+      fDefaultFileName[1] := '_';
+    for Idx := 2 to Length(fDefaultFileName) do
+      if not TCharacter.IsLetterOrDigit(fDefaultFileName[Idx])
+        and (fDefaultFileName[Idx] <> '_') then
+        fDefaultFileName[Idx] := '_';
+    Assert((fDefaultFileName <> '') and IsValidIdent(fDefaultFileName),
+      ClassName + '.SetFileName: Not a valid identifier');
+  end
+  else
+    fDefaultFileName := Value;
 end;
 
 procedure TSourceFileInfo.SetFileTypeInfo(const FileType: TSourceFileType;
@@ -261,24 +282,54 @@ end;
 { TSourceFileTypeInfo }
 
 constructor TSourceFileTypeInfo.Create(const AExtension, ADisplayName: string;
-  const AEncodings: array of TSourceFileEncoding);
+  const AEncodingTypes: array of TEncodingType);
 var
   I: Integer;
 begin
   fExtension := AExtension;
   fDisplayName := ADisplayName;
-  SetLength(fEncodings, Length(AEncodings));
-  for I := 0 to Pred(Length(AEncodings)) do
-    fEncodings[I] := AEncodings[I];
+  SetLength(fEncodings, Length(AEncodingTypes));
+  for I := 0 to Pred(Length(AEncodingTypes)) do
+    fEncodings[I] := TSourceFileEncoding.Create(AEncodingTypes[I]);
 end;
 
 { TSourceFileEncoding }
 
-constructor TSourceFileEncoding.Create(const AEncodingType: TEncodingType;
-  const ADisplayName: string);
+constructor TSourceFileEncoding.Create(const AEncodingType: TEncodingType);
+resourcestring
+  // Display names associated with each TEncodingType value
+  sASCIIEncodingName = 'ASCII';
+  sISO88591Name = 'ISO-8859-1';
+  sUTF8Name = 'UTF-8';
+  sUnicodeName = 'UTF-16';
+  sUTF16BEName = 'UTF-16 Big Endian';
+  sUTF16LEName = 'UTF-16 Little Endian';
+  sWindows1252Name = 'Windows-1252';
+  sSysDefaultName = 'ANSI Code Page %d';
 begin
   fEncodingType := AEncodingType;
-  fDisplayName := ADisplayName;
+  case fEncodingType of
+    etASCII:
+      fDisplayName := sASCIIEncodingName;
+    etISO88591:
+      fDisplayName := sISO88591Name;
+    etUTF8:
+      fDisplayName := sUTF8Name;
+    etUnicode:
+      fDisplayName := sUnicodeName;
+    etUTF16BE:
+      fDisplayName := sUTF16BEName;
+    etUTF16LE:
+      fDisplayName := sUTF16LEName;
+    etWindows1252:
+      fDisplayName := sWindows1252Name;
+    etSysDefault:
+      fDisplayName := Format(sSysDefaultName, [ULocales.DefaultAnsiCodePage]);
+    else
+      fDisplayName := '';
+  end;
+  Assert(fDisplayName <> '',
+    'TSourceFileEncoding.Create: Unrecognised encoding type');
 end;
 
 end.
