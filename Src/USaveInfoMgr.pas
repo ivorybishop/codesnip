@@ -270,18 +270,13 @@ const
 resourcestring
   sDefFileName = 'SnippetInfo';
   sDlgCaption = 'Save Snippet Information';
-  // descriptions of supported encodings
-  sASCIIEncoding = 'ASCII';
-  sANSIDefaultEncoding = 'ANSI (Default)';
-  sUTF8Encoding = 'UTF-8';
-  sUTF16LEEncoding = 'Unicode (Little Endian)';
-  sUTF16BEEncoding = 'Unicode (Big Endian)';
   // descriptions of supported file filter strings
   sRTFDesc = 'Rich text file';
   sTextDesc = 'Plain text file';
   sHTML5Desc = 'HTML 5 file';
   sXHTMLDesc = 'XHTML file';
   sMarkdownDesc = 'Markdown file';
+
 begin
   inherited InternalCreate;
   fView := AView;
@@ -290,45 +285,29 @@ begin
   fSourceFileInfo.FileTypeInfo[sfRTF] := TSourceFileTypeInfo.Create(
     '.rtf',
     sRTFDesc,
-    [
-      TSourceFileEncoding.Create(etASCII, sASCIIEncoding)
-    ]
+    [etASCII]
   );
   fSourceFileInfo.FileTypeInfo[sfText] := TSourceFileTypeInfo.Create(
     '.txt',
     sTextDesc,
-    [
-      TSourceFileEncoding.Create(etUTF8, sUTF8Encoding),
-      TSourceFileEncoding.Create(etUTF16LE, sUTF16LEEncoding),
-      TSourceFileEncoding.Create(etUTF16BE, sUTF16BEEncoding),
-      TSourceFileEncoding.Create(etSysDefault, sANSIDefaultEncoding)
-    ]
+    [etUTF8, etUTF16LE, etUTF16BE, etSysDefault]
   );
   fSourceFileInfo.FileTypeInfo[sfHTML5] := TSourceFileTypeInfo.Create(
     '.html',
     sHTML5Desc,
-    [
-      TSourceFileEncoding.Create(etUTF8, sUTF8Encoding)
-    ]
+    [etUTF8]
   );
   fSourceFileInfo.DefaultFileName := sDefFileName;
   fSourceFileInfo.FileTypeInfo[sfXHTML] := TSourceFileTypeInfo.Create(
     '.html',
     sXHTMLDesc,
-    [
-      TSourceFileEncoding.Create(etUTF8, sUTF8Encoding)
-    ]
+    [etUTF8]
   );
   fSourceFileInfo.DefaultFileName := sDefFileName;
   fSourceFileInfo.FileTypeInfo[sfMarkdown] := TSourceFileTypeInfo.Create(
     '.md',
     sMarkdownDesc,
-    [
-      TSourceFileEncoding.Create(etUTF8, sUTF8Encoding),
-      TSourceFileEncoding.Create(etUTF16LE, sUTF16LEEncoding),
-      TSourceFileEncoding.Create(etUTF16BE, sUTF16BEEncoding),
-      TSourceFileEncoding.Create(etSysDefault, sANSIDefaultEncoding)
-    ]
+    [etUTF8, etUTF16LE, etUTF16BE, etSysDefault]
   );
   fSourceFileInfo.DefaultFileName := sDefFileName;
 
