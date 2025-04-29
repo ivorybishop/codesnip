@@ -273,7 +273,6 @@ constructor TSaveInfoMgr.InternalCreate(AView: IView);
 const
   DlgHelpKeyword = 'SnippetInfoFileDlg';
 resourcestring
-  sDefFileName = 'SnippetInfo';
   // descriptions of supported file filter strings
   sRTFDesc = 'Rich text file';
   sTextDesc = 'Plain text file';
@@ -301,19 +300,20 @@ begin
     sHTML5Desc,
     [etUTF8]
   );
-  fSourceFileInfo.DefaultFileName := sDefFileName;
   fSourceFileInfo.FileTypeInfo[sfXHTML] := TSourceFileTypeInfo.Create(
     '.html',
     sXHTMLDesc,
     [etUTF8]
   );
-  fSourceFileInfo.DefaultFileName := sDefFileName;
   fSourceFileInfo.FileTypeInfo[sfMarkdown] := TSourceFileTypeInfo.Create(
     '.md',
     sMarkdownDesc,
     [etUTF8, etUTF16LE, etUTF16BE, etSysDefault]
   );
-  fSourceFileInfo.DefaultFileName := sDefFileName;
+
+  // set default file name without converting to valid Pascal identifier
+  fSourceFileInfo.RequirePascalDefFileName := False;
+  fSourceFileInfo.DefaultFileName := fView.Description;
 
   fSaveDlg := TSaveSourceDlg.Create(nil);
   fSaveDlg.HelpKeyword := DlgHelpKeyword;

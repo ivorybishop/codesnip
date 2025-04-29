@@ -103,6 +103,8 @@ type
       fFilterIdxToFileTypeMap: TDictionary<Integer,TSourceFileType>;
       ///  <summary>Value of DefaultFileName property.</summary>
       fDefaultFileName: string;
+      ///  <summary>Value of <c>RequirePascalDefFileName</c> property.</summary>
+      fRequirePascalDefFileName: Boolean;
       ///  <summary>Filter string for use in open / save dialog boxes from
       ///  descriptions and file extensions of each supported file type.
       ///  </summary>
@@ -153,10 +155,18 @@ type
       read GetFileTypeInfo write SetFileTypeInfo;
 
     ///  <summary>Default source code file name.</summary>
-    ///  <remarks>Must be a valid Pascal identifier. Invalid characters are
-    ///  replaced by underscores.</remarks>
+    ///  <remarks>If, and only if, <c>RequirePascalDefFileName</c> is
+    ///  <c>True</c> the default file name is modified so that name is a valid
+    ///  Pascal identifier.</remarks>
     property DefaultFileName: string
       read fDefaultFileName write SetDefaultFileName;
+
+    ///  <summary>Determines whether any value assigned to
+    ///  <c>DefaultFileName</c> is converted to a valid Pascal identifier or
+    ///  not.</summary>
+    property RequirePascalDefFileName: Boolean
+      read fRequirePascalDefFileName write fRequirePascalDefFileName
+      default True;
   end;
 
 
@@ -178,6 +188,7 @@ begin
   inherited Create;
   fFileTypeInfo := TDictionary<TSourceFileType,TSourceFileTypeInfo>.Create;
   fFilterIdxToFileTypeMap := TDictionary<Integer,TSourceFileType>.Create;
+  fRequirePascalDefFileName := True;
 end;
 
 destructor TSourceFileInfo.Destroy;
@@ -232,19 +243,24 @@ procedure TSourceFileInfo.SetDefaultFileName(const Value: string);
 var
   Idx: Integer; // loops through characters of filename
 begin
-  // convert to "camel" case
-  fDefaultFileName := StrStripWhiteSpace(StrCapitaliseWords(Value));
-  // replaces invalid Pascal identifier characters with underscore
-  if (fDefaultFileName <> '')
-    and not TCharacter.IsLetter(fDefaultFileName[1])
-    and (fDefaultFileName[1] <> '_') then
-    fDefaultFileName[1] := '_';
-  for Idx := 2 to Length(fDefaultFileName) do
-    if not TCharacter.IsLetterOrDigit(fDefaultFileName[Idx])
-      and (fDefaultFileName[Idx] <> '_') then
-      fDefaultFileName[Idx] := '_';
-  Assert((fDefaultFileName <> '') and IsValidIdent(fDefaultFileName),
-    ClassName + '.SetFileName: Not a valid identifier');
+  if fRequirePascalDefFileName then
+  begin
+    // convert to "camel" case
+    fDefaultFileName := StrStripWhiteSpace(StrCapitaliseWords(Value));
+    // replaces invalid Pascal identifier characters with underscore
+    if (fDefaultFileName <> '')
+      and not TCharacter.IsLetter(fDefaultFileName[1])
+      and (fDefaultFileName[1] <> '_') then
+      fDefaultFileName[1] := '_';
+    for Idx := 2 to Length(fDefaultFileName) do
+      if not TCharacter.IsLetterOrDigit(fDefaultFileName[Idx])
+        and (fDefaultFileName[Idx] <> '_') then
+        fDefaultFileName[Idx] := '_';
+    Assert((fDefaultFileName <> '') and IsValidIdent(fDefaultFileName),
+      ClassName + '.SetFileName: Not a valid identifier');
+  end
+  else
+    fDefaultFileName := Value;
 end;
 
 procedure TSourceFileInfo.SetFileTypeInfo(const FileType: TSourceFileType;
