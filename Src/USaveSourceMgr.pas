@@ -270,7 +270,7 @@ begin
   fSourceFileInfo.FileTypeInfo[sfRTF] := TSourceFileTypeInfo.Create(
     '.rtf',
     GetFileTypeDesc(sfRTF),
-    [etSysDefault]
+    [etASCII]
  );
   fSourceFileInfo.DefaultFileName := GetDefaultFileName;
 
