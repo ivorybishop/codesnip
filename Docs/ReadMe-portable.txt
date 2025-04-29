@@ -144,8 +144,8 @@ Updating the Program
 Updates are published on GitHub. See
 https://github.com/delphidabbler/codesnip/releases
 
-News of new updates is published on the CodeSnip Blog:
-https://codesnip-app.blogspot.com/.
+News of new updates is published on the DelphiDabbler Blog:
+https://delphidabbler.blogspot.com/.
 
 
 Known Installation and Upgrading Issues
