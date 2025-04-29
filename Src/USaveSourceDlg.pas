@@ -495,6 +495,8 @@ begin
   fCmbEncoding.ItemIndex := IndexOfEncodingType(fSelectedEncoding);
   if fCmbEncoding.ItemIndex = -1 then
     fCmbEncoding.ItemIndex := 0;
+  fCmbEncoding.Enabled := fCmbEncoding.Items.Count > 1;
+  fLblEncoding.Enabled := fCmbEncoding.Enabled;
   DoEncodingChange;
 
   inherited;
