@@ -92,8 +92,8 @@ uses
 
 resourcestring
   // Dialog box title
-  sSaveSnippetDlgTitle = 'Save %0:s Snippet';
-  sSaveCategoryDlgTitle = 'Save %0:s Category';
+  sSaveSnippetDlgTitle = 'Save Annotated Source of %0:s';
+  sSaveCategoryDlgTitle = 'Save Annotated Source of %0:s Category';
   // Output document title for snippets and categories
   sDocTitle = '"%0:s" %1:s';
   sCategory = 'category';
