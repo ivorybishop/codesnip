@@ -20,6 +20,7 @@ uses
   UEncodings,
   UHTMLSnippetDoc,
   USaveSourceDlg,
+  USnippetDoc,
   USourceFileInfo,
   UView;
 
@@ -38,32 +39,6 @@ type
     ///  <summary>Displays a warning message about data loss if
     ///  <c>ExpectedStr</c> doesn't match <c>EncodedStr</c>.</summary>
     class procedure WarnIfDataLoss(const ExpectedStr, EncodedStr: string);
-
-    ///  <summary>Returns encoded data containing a RTF representation of
-    ///  information about the snippet represented by the given view.</summary>
-    class function GenerateRichText(View: IView; const AUseHiliting: Boolean):
-      TEncodedData; static;
-
-    ///  <summary>Returns encoded data containing a HTML representation of the
-    ///  required snippet information.</summary>
-    ///  <param name="AUseHiliting"><c>Boolean</c> [in] Determines whether
-    ///  source code is syntax highlighted or not.</param>
-    ///  <param name="GeneratorClass"><c>THTMLSnippetDocClass</c> [in] Class of
-    ///  object used to generate the required flavour of HTML.</param>
-    ///  <returns><c>TEncodedData</c>. Required HTML document, encoded as UTF-8.
-    ///  </returns>
-    function GenerateHTML(const AUseHiliting: Boolean;
-      const GeneratorClass: THTMLSnippetDocClass): TEncodedData;
-
-    ///  <summary>Returns encoded data containing a plain text representation of
-    ///  information about the snippet represented by the given view.</summary>
-    function GeneratePlainText: TEncodedData;
-
-    ///  <summary>Returns encoded data containing a Markdown representation of
-    ///  information about the snippet represented by the given view.</summary>
-    ///  <returns><c>TEncodedData</c>. Required Markdown document, encoded as
-    ///  UTF-16.</returns>
-    function GenerateMarkdown: TEncodedData;
 
     ///  <summary>Returns type of file selected in the associated save dialogue
     ///  box.</summary>
@@ -95,6 +70,14 @@ type
     ///  encodings supported by the currently selected file type.</param>
     procedure EncodingQueryHandler(Sender: TObject;
       var Encodings: TSourceFileEncodings);
+
+    ///  <summary>Returns an instance of the document generator object for the
+    ///  desired file type.</summary>
+    ///  <param name="FileType"><c>TSourceFileType</c> [in] The type of file to
+    ///  be generated.</param>
+    ///  <returns><c>TSnippetDoc</c>. The required document generator object.
+    ///  The caller MUST free this object.</returns>
+    function GetDocGenerator(const FileType: TSourceFileType): TSnippetDoc;
 
     ///  <summary>Generates the required snippet information in the requested
     ///  format.</summary>
@@ -142,6 +125,7 @@ uses
   Hiliter.UAttrs,
   Hiliter.UFileHiliter,
   Hiliter.UGlobals,
+  UExceptions,
   UIOUtils,
   UMarkdownSnippetDoc,
   UMessageBox,
@@ -215,106 +199,62 @@ begin
   end;
 end;
 
-function TSaveInfoMgr.GenerateHTML(const AUseHiliting: Boolean;
-  const GeneratorClass: THTMLSnippetDocClass): TEncodedData;
-var
-  Doc: THTMLSnippetDoc;      // object that generates RTF document
-  HiliteAttrs: IHiliteAttrs;  // syntax highlighter formatting attributes
-begin
-  if (fView as ISnippetView).Snippet.HiliteSource and AUseHiliting then
-    HiliteAttrs := THiliteAttrsFactory.CreateUserAttrs
-  else
-    HiliteAttrs := THiliteAttrsFactory.CreateNulAttrs;
-  Doc := GeneratorClass.Create(HiliteAttrs);
-  try
-    Result := Doc.Generate((fView as ISnippetView).Snippet);
-  finally
-    Doc.Free;
-  end;
-end;
-
-function TSaveInfoMgr.GenerateMarkdown: TEncodedData;
-var
-  Doc: TMarkdownSnippetDoc;
-  ExpectedMarkown: string;
-begin
-  Assert(Supports(fView, ISnippetView),
-    ClassName + '.GenerateMarkdown: View is not a snippet view');
-  Doc := TMarkdownSnippetDoc.Create(
-    (fView as ISnippetView).Snippet.Kind <> skFreeform
-  );
-  try
-    // Generate Markdown using default UTF-16 encoding
-    ExpectedMarkown := Doc.Generate((fView as ISnippetView).Snippet).ToString;
-    // Convert Markdown to encoding to that selected in save dialogue box
-    Result := TEncodedData.Create(ExpectedMarkown, fSaveDlg.SelectedEncoding);
-    // Check for data loss in required encoding
-    WarnIfDataLoss(ExpectedMarkown, Result.ToString);
-  finally
-    Doc.Free;
-  end;
-end;
-
 function TSaveInfoMgr.GenerateOutput(const FileType: TSourceFileType):
   TEncodedData;
 var
-  UseHiliting: Boolean;
+  Doc: TSnippetDoc;
+  DocData: TEncodedData;
+  ExpectedText: string;
 begin
-  UseHiliting := fSaveDlg.UseSyntaxHiliting and
-    TFileHiliter.IsHilitingSupported(FileType);
-  case FileType of
-    sfRTF: Result := GenerateRichText(fView, UseHiliting);
-    sfText: Result := GeneratePlainText;
-    sfHTML5: Result := GenerateHTML(UseHiliting, THTML5SnippetDoc);
-    sfXHTML: Result := GenerateHTML(UseHiliting, TXHTMLSnippetDoc);
-    sfMarkdown: Result := GenerateMarkdown;
-  end;
-end;
-
-function TSaveInfoMgr.GeneratePlainText: TEncodedData;
-var
-  Doc: TTextSnippetDoc;        // object that generates plain text document
-  HiliteAttrs: IHiliteAttrs;   // syntax highlighter formatting attributes
-  ExpectedText: string;        // expected plain text
-begin
-  Assert(Supports(fView, ISnippetView),
-    ClassName + '.GeneratePlainText: View is not a snippet view');
-  HiliteAttrs := THiliteAttrsFactory.CreateNulAttrs;
-  Doc := TTextSnippetDoc.Create;
+  // Create required type of document generator
+  Doc := GetDocGenerator(FileType);
   try
-    // Generate text using default UTF-16 encoding
-    ExpectedText := Doc.Generate((fView as ISnippetView).Snippet).ToString;
-    // Convert encoding to that selected in save dialogue box
-    Result := TEncodedData.Create(
-      ExpectedText, fSaveDlg.SelectedEncoding
-    );
-    // Check for data loss in required encoding
-    WarnIfDataLoss(ExpectedText, Result.ToString);
+    Assert(Assigned(Doc), ClassName + '.GenerateOutput: unknown file type');
+    // Generate text
+    DocData := Doc.Generate((fView as ISnippetView).Snippet);
+    if DocData.EncodingType <> fSaveDlg.SelectedEncoding then
+    begin
+      // Required encoding is different to that used to generate document, so
+      // we need to convert to the desired encoding
+      ExpectedText := DocData.ToString;
+      // Convert encoding to that selected in save dialogue box
+      Result := TEncodedData.Create(
+        ExpectedText, fSaveDlg.SelectedEncoding
+      );
+      // Check for data loss in desired encoding
+      WarnIfDataLoss(ExpectedText, Result.ToString);
+    end
+    else
+      // Required encoding is same as that used to generate the document
+      Result := DocData;
   finally
     Doc.Free;
   end;
 end;
 
-class function TSaveInfoMgr.GenerateRichText(View: IView;
-  const AUseHiliting: Boolean): TEncodedData;
+function TSaveInfoMgr.GetDocGenerator(const FileType: TSourceFileType):
+  TSnippetDoc;
 var
-  Doc: TRTFSnippetDoc;        // object that generates RTF document
+  UseHiliting: Boolean;
+  IsPascalSnippet: Boolean;
   HiliteAttrs: IHiliteAttrs;  // syntax highlighter formatting attributes
 begin
-  Assert(Supports(View, ISnippetView),
-    'TSaveInfoMgr.GenerateRichText: View is not a snippet view');
-  if (View as ISnippetView).Snippet.HiliteSource and AUseHiliting then
+  IsPascalSnippet := (fView as ISnippetView).Snippet.Kind <> skFreeform;
+  UseHiliting := fSaveDlg.UseSyntaxHiliting
+    and TFileHiliter.IsHilitingSupported(FileType)
+    and (fView as ISnippetView).Snippet.HiliteSource;
+  if UseHiliting then
     HiliteAttrs := THiliteAttrsFactory.CreateUserAttrs
   else
     HiliteAttrs := THiliteAttrsFactory.CreateNulAttrs;
-  Doc := TRTFSnippetDoc.Create(HiliteAttrs);
-  try
-    // TRTFSnippetDoc generates stream of ASCII bytes
-    Result := Doc.Generate((View as ISnippetView).Snippet);
-    Assert(Result.EncodingType = etASCII,
-      'TSaveInfoMgr.GenerateRichText: ASCII encoded data expected');
-  finally
-    Doc.Free;
+  // Create required type of document generator
+  case FileType of
+    sfRTF: Result := TRTFSnippetDoc.Create(HiliteAttrs);
+    sfText: Result := TTextSnippetDoc.Create;
+    sfHTML5: Result := THTML5SnippetDoc.Create(HiliteAttrs);
+    sfXHTML: Result := TXHTMLSnippetDoc.Create(HiliteAttrs);
+    sfMarkdown: Result := TMarkdownSnippetDoc.Create(IsPascalSnippet);
+    else Result := nil;
   end;
 end;
 
