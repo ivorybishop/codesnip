@@ -217,6 +217,7 @@ function TSaveUnitMgr.GenerateSource(const CommentStyle: TCommentStyle;
 begin
   Result := fSourceGen.UnitAsString(
     UnitName,
+    Preferences.Warnings,
     CommentStyle,
     TruncateComments,
     Preferences.TruncateSourceComments,

@@ -18,9 +18,14 @@ interface
 
 uses
   // Delphi
-  Classes, Generics.Collections,
+  Classes,
+  Generics.Collections,
   // Project
-  ActiveText.UMain, DB.USnippet, UBaseObjects, UIStringList;
+  ActiveText.UMain,
+  DB.USnippet,
+  UBaseObjects,
+  UIStringList,
+  UWarnings;
 
 
 type
@@ -211,7 +216,7 @@ type
     ///  <param name="HeaderComments"><c>IStringList</c> [in] List of comments
     ///  to be included at top of unit.</param>
     ///  <returns><c>string</c>. Unit source code.</returns>
-    function UnitAsString(const UnitName: string;
+    function UnitAsString(const UnitName: string; const Warnings: IWarnings;
       const CommentStyle: TCommentStyle = csNone;
       const TruncateComments: Boolean = False;
       const UseCommentsInImplementation: Boolean = False;
@@ -255,10 +260,16 @@ implementation
 
 uses
   // Delphi
-  SysUtils, Character,
+  SysUtils,
+  Character,
   // Project
-  ActiveText.UTextRenderer, DB.USnippetKind, UConsts, UExceptions, UPreferences,
-  USnippetValidator, UStrUtils, UWarnings, Hiliter.UPasLexer;
+  ActiveText.UTextRenderer,
+  DB.USnippetKind,
+  UConsts,
+  UExceptions,
+  USnippetValidator,
+  UStrUtils,
+  Hiliter.UPasLexer;
 
 
 const
@@ -588,6 +599,7 @@ begin
 end;
 
 function TSourceGen.UnitAsString(const UnitName: string;
+  const Warnings: IWarnings;
   const CommentStyle: TCommentStyle = csNone;
   const TruncateComments: Boolean = False;
   const UseCommentsInImplementation: Boolean = False;
@@ -595,7 +607,6 @@ function TSourceGen.UnitAsString(const UnitName: string;
 var
   Writer: TStringBuilder;                    // used to build source code string
   Snippet: TSnippet;                            // reference to a snippet object
-  Warnings: IWarnings;        // object giving info about any inhibited warnings
   ImplCommentStyle: TCommentStyle;        // style of comments in implementation
 begin
   // Set comment style for implementation section
@@ -620,7 +631,6 @@ begin
     Writer.AppendLine;
 
     // any conditional compilation symbols
-    Warnings := Preferences.Warnings;
     if Warnings.Enabled and not Warnings.IsEmpty then
     begin
       Writer.Append(Warnings.Render);
