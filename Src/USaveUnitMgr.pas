@@ -99,6 +99,7 @@ uses
   DB.UMetaData,
   UAppInfo,
   UConsts,
+  UPreferences,
   UUrl,
   UUtils;
 
@@ -215,7 +216,11 @@ function TSaveUnitMgr.GenerateSource(const CommentStyle: TCommentStyle;
   const TruncateComments: Boolean): string;
 begin
   Result := fSourceGen.UnitAsString(
-    UnitName, CommentStyle, TruncateComments, CreateHeaderComments
+    UnitName,
+    CommentStyle,
+    TruncateComments,
+    Preferences.TruncateSourceComments,
+    CreateHeaderComments
   );
 end;
 
